@@ -14,6 +14,8 @@ CORS(app)
 # SECURE API KEY USAGE
 openai.api_key = os.getenv("OPENAI_API_KEY")  # Store in environment variables
 
+# Temporary storage for extracted text per session
+document_cache = {}
 
 def extract_text_from_file(file_path, file_type):
     """Extracts text from different file formats."""
@@ -56,7 +58,7 @@ def summarize():
 
         uploaded_file = request.files['file']
         file_name = uploaded_file.filename
-        file_type = os.path.splitext(file_name)[-1].lower().replace('.', '')
+        file_type = file_name.split('.')[-1].lower()
 
         # Validate file type
         allowed_types = {"pdf", "docx", "pptx", "xlsx"}
@@ -74,15 +76,55 @@ def summarize():
         if not extracted_text.strip():
             return jsonify({"error": "No text extracted from file"}), 400
 
+        # Store extracted text for follow-up questions
+        document_cache['text'] = extracted_text
+
         # Send extracted content to OpenAI for summarization
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "system", "content": "Summarize this document in 3-5 bullet points:"},
-                      {"role": "user", "content": extracted_text[:15000]}],  # Limit input size
+            messages=[
+                {"role": "system", "content": "Summarize this document in 3-5 bullet points:"},
+                {"role": "user", "content": extracted_text[:15000]}  # Limit input size
+            ],
             temperature=0.3
         )
 
         return jsonify({"summary": response.choices[0].message.content})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/ask', methods=['POST'])
+def ask():
+    """Handles follow-up questions about the previously uploaded document."""
+    try:
+        # Ensure there's a stored document
+        if 'text' not in document_cache:
+            return jsonify({"error": "No document found. Please upload a file first."}), 400
+
+        # Get the user's query
+        data = request.get_json()
+        query = data.get("query")
+
+        if not query or not query.strip():
+            return jsonify({"error": "Query cannot be empty"}), 400
+
+        # Retrieve the stored document text
+        document_text = document_cache['text']
+
+        # Send follow-up question to OpenAI with the document context
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are answering questions based on the following document:"},
+                {"role": "user", "content": document_text[:15000]},  # Limit input size
+                {"role": "user", "content": f"Based on this document, {query}"}
+            ],
+            temperature=0.3
+        )
+
+        return jsonify({"answer": response.choices[0].message.content})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
