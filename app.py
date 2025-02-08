@@ -56,7 +56,7 @@ def summarize():
 
         uploaded_file = request.files['file']
         file_name = uploaded_file.filename
-        file_type = file_name.split('.')[-1].lower()
+        file_type = os.path.splitext(file_name)[-1].lower().replace('.', '')
 
         # Validate file type
         allowed_types = {"pdf", "docx", "pptx", "xlsx"}
