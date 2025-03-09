@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import openai
+from openai import AzureOpenAI
 import os
 import tempfile
 import mammoth
@@ -88,28 +88,31 @@ def summarize():
           #  ],
           #  temperature=0.3
         #)
-        openai.api_base = "https://weezai.openai.azure.com"  # Your Azure OpenAI Endpoint
-        openai.api_key = os.getenv("OPENAI_API_KEY")  # Get API key from environment variable
-        openai.api_type = "azure"
-        openai.api_version = "2024-11-20"  # Use the correct API version
-
-# Deployment Name (from Azure)
-        DEPLOYMENT_NAME = "gpt-35-turbo"  # Change to "gpt-4o" if needed
-        response = openai.ChatCompletion.create(
-        engine=DEPLOYMENT_NAME,  # Use engine instead of model
+       try:
+    # Create client with API key
+    client = AzureOpenAI(
+        api_key=os.getenv("OPENAI_API_KEY"),
+        api_version="2024-11-20",
+        azure_endpoint="https://weezai.openai.azure.com"
+    )
+    
+    # Deployment Name (from Azure)
+    DEPLOYMENT_NAME = "gpt-35-turbo"  # Change to "gpt-4o" if needed
+    
+    response = client.chat.completions.create(
+        model=DEPLOYMENT_NAME,  # Use model parameter instead of engine
         messages=[
-        {"role": "system", "content": "Summarize this document in 3-5 bullet points:"},
-        {"role": "user", "content": extracted_text[:15000]}  # Limit input size
+            {"role": "system", "content": "Summarize this document in 3-5 bullet points:"},
+            {"role": "user", "content": extracted_text[:15000]}  # Limit input size
         ],
         temperature=0.3
-            )
-
-# Return JSON response
-
-        return jsonify({"summary": response.choices[0].message.content})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    )
+    
+    # Return JSON response
+    return jsonify({"summary": response.choices[0].message.content})
+    
+except Exception as e:
+    return jsonify({"error": str(e)}), 500
 
 
 @app.route('/ask', methods=['POST'])
