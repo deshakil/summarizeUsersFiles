@@ -78,38 +78,26 @@ def summarize():
 
         # Store extracted text for follow-up questions
         document_cache['text'] = extracted_text
-
-        # Send extracted content to OpenAI for summarization
-        #response = openai.ChatCompletion.create(
-         #   model="gpt-3.5-turbo",
-          #  messages=[
-          #      {"role": "system", "content": "Summarize this document in 3-5 bullet points:"},
-          #      {"role": "user", "content": extracted_text[:15000]}  # Limit input size
-          #  ],
-          #  temperature=0.3
-        #)
-       try:
-    # Create client with API key
-    client = AzureOpenAI(
-        api_key=os.getenv("OPENAI_API_KEY"),
-        api_version="2024-11-20",
-        azure_endpoint="https://weezai.openai.azure.com"
-    )
+        # Create client with API key
+        client = AzureOpenAI(
+         api_key=os.getenv("OPENAI_API_KEY"),
+         api_version="2024-11-20",
+         azure_endpoint="https://weezai.openai.azure.com"
+         )
     
     # Deployment Name (from Azure)
-    DEPLOYMENT_NAME = "gpt-35-turbo"  # Change to "gpt-4o" if needed
-    
-    response = client.chat.completions.create(
-        model=DEPLOYMENT_NAME,  # Use model parameter instead of engine
-        messages=[
+        DEPLOYMENT_NAME = "gpt-35-turbo"  # Change to "gpt-4o" if needed
+        response = client.chat.completions.create(
+         model=DEPLOYMENT_NAME,  # Use model parameter instead of engine
+         messages=[
             {"role": "system", "content": "Summarize this document in 3-5 bullet points:"},
             {"role": "user", "content": extracted_text[:15000]}  # Limit input size
         ],
-        temperature=0.3
+         temperature=0.3
     )
     
     # Return JSON response
-    return jsonify({"summary": response.choices[0].message.content})
+        return jsonify({"summary": response.choices[0].message.content})
     
 except Exception as e:
     return jsonify({"error": str(e)}), 500
