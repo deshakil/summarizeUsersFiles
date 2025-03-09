@@ -99,8 +99,8 @@ def summarize():
     # Return JSON response
         return jsonify({"summary": response.choices[0].message.content})
     
-except Exception as e:
-    return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/ask', methods=['POST'])
@@ -122,15 +122,23 @@ def ask():
         document_text = document_cache['text']
 
         # Send follow-up question to OpenAI with the document context
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
+        client = AzureOpenAI(
+         api_key=os.getenv("OPENAI_API_KEY"),
+         api_version="2024-11-20",
+         azure_endpoint="https://weezai.openai.azure.com"
+         )
+    
+    # Deployment Name (from Azure)
+        DEPLOYMENT_NAME = "gpt-35-turbo"  # Change to "gpt-4o" if needed
+        response = client.chat.completions.create(
+         model=DEPLOYMENT_NAME,  # Use model parameter instead of engine
+         messages=[
                 {"role": "system", "content": "You are answering questions based on the following document:"},
                 {"role": "user", "content": document_text[:15000]},  # Limit input size
-                {"role": "user", "content": f"Based on this document, {query}"}
-            ],
-            temperature=0.3
-        )
+                {"role": "user", "content": f"Based on this document, {query}"}        ],
+         temperature=0.3
+    )
+
 
         return jsonify({"answer": response.choices[0].message.content})
 
