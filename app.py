@@ -11,9 +11,6 @@ from pptx import Presentation
 app = Flask(__name__)
 CORS(app)
 
-# SECURE API KEY USAGE
-openai.api_key = os.getenv("OPENAI_API_KEY")  # Store in environment variables
-
 # Temporary storage for extracted text per session
 document_cache = {}
 
