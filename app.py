@@ -133,8 +133,8 @@ def summarize():
         except Exception as e:
             logger.warning(f"Failed to remove temp file: {e}")
             
-        # Return JSON response
-        #return jsonify({"summary": summary})
+        
+        return jsonify({"summary": summary})
     
     except Exception as e:
         logger.error(f"Error in summarize endpoint: {str(e)}", exc_info=True)
