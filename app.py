@@ -1,6 +1,4 @@
-
-
-from flask import Flask, request, jsonify, Response, stream_with_context
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from openai import AzureOpenAI
 import os
@@ -105,49 +103,38 @@ def summarize():
         if not api_key:
             logger.error("Missing OpenAI API key")
             return jsonify({"error": "Server configuration error: Missing API key"}), 500
-        
-        # Create streaming response
-        def generate():
-            try:
-                # Create client with API key
-                client = AzureOpenAI(
-                    api_key=api_key,
-                    api_version="2024-12-01-preview",
-                    azure_endpoint="https://weez-openai-resource.openai.azure.com/"
-                )
             
-                # Deployment Name (from Azure)
-                DEPLOYMENT_NAME = "gpt-4o"  # Change to "gpt-4o" if needed
-                logger.info(f"Sending request to OpenAI with model {DEPLOYMENT_NAME}")
-                
-                # Use streaming for the completion
-                stream = client.chat.completions.create(
-                    model=DEPLOYMENT_NAME,
-                    messages=[
-                        {"role": "system", "content": "Summarize this document in 3-5 bullet points:"},
-                        {"role": "user", "content": extracted_text[:15000]}  # Limit input size
-                    ],
-                    temperature=0.3,
-                    stream=True
-                )
-                
-                for chunk in stream:
-                    if chunk.choices and chunk.choices[0].delta.content:
-                        content = chunk.choices[0].delta.content
-                        yield content
-                
-                # Clean up temp file
-                try:
-                    os.remove(temp_file_path)
-                except Exception as e:
-                    logger.warning(f"Failed to remove temp file: {e}")
-                    
-            except Exception as e:
-                logger.error(f"Error during streaming: {str(e)}", exc_info=True)
-                yield f"Error generating summary: {str(e)}"
+        # Create client with API key
+        client = AzureOpenAI(
+            api_key=api_key,
+            api_version="2024-12-01-preview",
+            azure_endpoint="https://weez-openai-resource.openai.azure.com/"
+        )
+    
+        # Deployment Name (from Azure)
+        DEPLOYMENT_NAME = "gpt-4o"  # Change to "gpt-4o" if needed
+        logger.info(f"Sending request to OpenAI with model {DEPLOYMENT_NAME}")
         
-        # Return a streaming response
-        return Response(stream_with_context(generate()), content_type='text/plain')
+        response = client.chat.completions.create(
+            model=DEPLOYMENT_NAME,
+            messages=[
+                {"role": "system", "content": "Summarize this document in 3-5 bullet points:"},
+                {"role": "user", "content": extracted_text[:15000]}  # Limit input size
+            ],
+            temperature=0.3
+        )
+    
+        summary = response.choices[0].message.content
+        logger.info("Successfully generated summary")
+        
+        # Clean up temp file
+        try:
+            os.remove(temp_file_path)
+        except Exception as e:
+            logger.warning(f"Failed to remove temp file: {e}")
+            
+        # Return JSON response
+        #return jsonify({"summary": summary})
     
     except Exception as e:
         logger.error(f"Error in summarize endpoint: {str(e)}", exc_info=True)
@@ -189,43 +176,30 @@ def ask():
             logger.error("Missing OpenAI API key")
             return jsonify({"error": "Server configuration error: Missing API key"}), 500
 
-        # Create streaming response
-        def generate():
-            try:
-                # Send follow-up question to OpenAI with the document context
-                client = AzureOpenAI(
-                    api_key=api_key,
-                    api_version="2024-12-01-preview",
-                    azure_endpoint="https://weez-openai-resource.openai.azure.com/"
-                )
-            
-                # Deployment Name (from Azure)
-                DEPLOYMENT_NAME = "gpt-4o"  # Change to "gpt-4o" if needed
-                logger.info(f"Sending request to OpenAI with model {DEPLOYMENT_NAME}")
-                
-                # Use streaming for the completion
-                stream = client.chat.completions.create(
-                    model=DEPLOYMENT_NAME,
-                    messages=[
-                        {"role": "system", "content": "You are answering questions based on the following document:"},
-                        {"role": "user", "content": document_text[:15000]},  # Limit input size
-                        {"role": "user", "content": f"Based on this document, {query}"}
-                    ],
-                    temperature=0.3,
-                    stream=True
-                )
-                
-                for chunk in stream:
-                    if chunk.choices and chunk.choices[0].delta.content:
-                        content = chunk.choices[0].delta.content
-                        yield content
-                        
-            except Exception as e:
-                logger.error(f"Error during streaming: {str(e)}", exc_info=True)
-                yield f"Error answering question: {str(e)}"
+        # Send follow-up question to OpenAI with the document context
+        client = AzureOpenAI(
+            api_key=api_key,
+            api_version="2024-12-01-preview",
+            azure_endpoint="https://weez-openai-resource.openai.azure.com/"
+        )
+    
+        # Deployment Name (from Azure)
+        DEPLOYMENT_NAME = "gpt-4o"  # Change to "gpt-4o" if needed
+        logger.info(f"Sending request to OpenAI with model {DEPLOYMENT_NAME}")
         
-        # Return a streaming response
-        return Response(stream_with_context(generate()), content_type='text/plain')
+        response = client.chat.completions.create(
+            model=DEPLOYMENT_NAME,
+            messages=[
+                {"role": "system", "content": "You are answering questions based on the following document:"},
+                {"role": "user", "content": document_text[:15000]},  # Limit input size
+                {"role": "user", "content": f"Based on this document, {query}"}
+            ],
+            temperature=0.3
+        )
+
+        summary = response.choices[0].message.content
+        logger.info("Successfully generated summary")
+
 
     except Exception as e:
         logger.error(f"Error in ask endpoint: {str(e)}", exc_info=True)
