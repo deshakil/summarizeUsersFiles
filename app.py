@@ -107,12 +107,12 @@ def summarize():
         # Create client with API key
         client = AzureOpenAI(
             api_key=api_key,
-            api_version="2024-11-20",
-            azure_endpoint="https://weezai.openai.azure.com"
+            api_version="2024-12-01-preview",
+            azure_endpoint="https://weez-openai-resource.openai.azure.com/"
         )
     
         # Deployment Name (from Azure)
-        DEPLOYMENT_NAME = "gpt-35-turbo"  # Change to "gpt-4o" if needed
+        DEPLOYMENT_NAME = "gpt-4o"  # Change to "gpt-4o" if needed
         logger.info(f"Sending request to OpenAI with model {DEPLOYMENT_NAME}")
         
         response = client.chat.completions.create(
@@ -124,8 +124,12 @@ def summarize():
             temperature=0.3
         )
     
-        summary = response.choices[0].message.content
-        logger.info("Successfully generated summary")
+        for update in response:
+            if update.choices:
+                print(update.choices[0].delta.content or "", end="")
+
+        client.close()
+        logger.info("Successfully generated answer")
         
         # Clean up temp file
         try:
@@ -134,7 +138,7 @@ def summarize():
             logger.warning(f"Failed to remove temp file: {e}")
             
         # Return JSON response
-        return jsonify({"summary": summary})
+        #return jsonify({"summary": summary})
     
     except Exception as e:
         logger.error(f"Error in summarize endpoint: {str(e)}", exc_info=True)
@@ -179,12 +183,12 @@ def ask():
         # Send follow-up question to OpenAI with the document context
         client = AzureOpenAI(
             api_key=api_key,
-            api_version="2024-11-20",
-            azure_endpoint="https://weezai.openai.azure.com"
+            api_version="2024-12-01-preview",
+            azure_endpoint="https://weez-openai-resource.openai.azure.com/"
         )
     
         # Deployment Name (from Azure)
-        DEPLOYMENT_NAME = "gpt-35-turbo"  # Change to "gpt-4o" if needed
+        DEPLOYMENT_NAME = "gpt-4o"  # Change to "gpt-4o" if needed
         logger.info(f"Sending request to OpenAI with model {DEPLOYMENT_NAME}")
         
         response = client.chat.completions.create(
@@ -197,10 +201,12 @@ def ask():
             temperature=0.3
         )
 
-        answer = response.choices[0].message.content
+        for update in response:
+            if update.choices:
+                print(update.choices[0].delta.content or "", end="")
+
+        client.close()
         logger.info("Successfully generated answer")
-        
-        return jsonify({"answer": answer})
 
     except Exception as e:
         logger.error(f"Error in ask endpoint: {str(e)}", exc_info=True)
