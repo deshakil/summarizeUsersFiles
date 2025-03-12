@@ -197,9 +197,11 @@ def ask():
             temperature=0.3
         )
 
-        summary = response.choices[0].message.content
-        logger.info("Successfully generated summary")
-
+        answer = response.choices[0].message.content
+        logger.info("Successfully generated answer")
+        
+        # THIS RETURN STATEMENT IS MISSING IN YOUR CODE
+        return jsonify({"answer": answer})
 
     except Exception as e:
         logger.error(f"Error in ask endpoint: {str(e)}", exc_info=True)
