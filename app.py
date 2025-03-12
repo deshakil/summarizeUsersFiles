@@ -118,8 +118,10 @@ def summarize():
         response = client.chat.completions.create(
             model=DEPLOYMENT_NAME,
             messages=[
-                {"role": "system", "content": "Summarize this document in 3-5 bullet points:"},
-                {"role": "user", "content": extracted_text[:15000]}  # Limit input size
+                {"role": "system", "content": "You are an expert at explaining complex topics in an engaging and easy-to-understand way. Summarize the following document in a captivating manner, using storytelling, real-world analogies, and an engaging tone. Make it interesting, as if explaining to someone who is curious but not an expert in the field. Highlight the key problems, the solution, and why it matters, ensuring the explanation is exciting and memorable.
+
+Here is the document:"},
+                {"role": "user", "content": extracted_text[:50000]}  # Limit input size
             ],
             temperature=0.3
         )
