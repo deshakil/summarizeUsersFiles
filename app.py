@@ -118,7 +118,6 @@ def summarize():
         response = client.chat.completions.create(
             model=DEPLOYMENT_NAME,
             messages=[
-                messages=[
                {"role": "system", "content": """
                 You are an expert at explaining complex topics in an engaging and easy-to-understand way. 
                 Your task is to summarize the following document in a compelling and professional manner, 
